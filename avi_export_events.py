@@ -22,9 +22,9 @@ import csv
 def main():
 
     parser = argparse.ArgumentParser(description="AVISDK based Script to import a a certificate based on tenant.")
-    parser.add_argument("-u", "--username", required=True, help="Login username")
-    parser.add_argument("-p", "--password", required=True, help="Login password")
-    parser.add_argument("-c", "--controller", required=True, help="Controller IP address")
+    parser.add_argument("-u", "--username", required=False, help="Login username")
+    parser.add_argument("-p", "--password", required=False, help="Login password")
+    parser.add_argument("-c", "--controller", required=False, help="Controller IP address")
     parser.add_argument("-a", "--api_version", required=False, help="Api Version Name")
     parser.add_argument("-sd", "--startdate", required=False, help="The start date to gather logs format:<yyyy-mm-dd>")
     parser.add_argument("-st", "--starttime", required=False, help="The start time to gather logs format:<hh:mm:ss>")
@@ -39,7 +39,8 @@ def main():
     api_version = str([args.api_version if args.api_version else "17.2.1"][0])
 
     print "Starting Event Export"
-    print "!!Note: The filtering of events is in UTC timezone."
+    print "!!Note 1: The filtering of events is in UTC timezone."
+    print "!!Note 2: Do not use size pull bigger than 1000 events to allow the api engine to work more gracefully."
 
     date_start = str([args.startdate if args.startdate else datetime.today().strftime('%Y-%m-%d')][0])
     time_start = str([args.starttime if args.starttime else "00:00:00"][0])
@@ -58,10 +59,12 @@ def main():
         print "Starting Event Data Download"
         page = 1
         while True:
-            resp = api.get("analytics/logs?type=2&start=" + str(date_start) + "T" + time_start + ".000Z&end=" + str(date_end) + "T" + time_end + ".999Z&page_size=5000&page=" + str(page) + "&orderby=-report_timestamp")
+
+            #print "uri: " + "analytics/logs?type=2&start=" + str(date_start) + "T" + time_start + ".000Z&end=" + str(date_end) + "T" + time_end + ".999Z&page_size=1000&page=" + str(page) + "&orderby=-report_timestamp"
+            resp = api.get("analytics/logs?type=2&start=" + str(date_start) + "T" + time_start + ".000Z&end=" + str(date_end) + "T" + time_end + ".999Z&page_size=1000&page=" + str(page) + "&orderby=-report_timestamp")
 
             if resp.status_code in range(200, 299):
-                print "Downloading Records..."
+                print "Downloading Records (Page:" + str(page) + ")"
                 json_data = json.loads(resp.text)
                 for row in json_data['results']:
 
