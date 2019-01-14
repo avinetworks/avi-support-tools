@@ -31,7 +31,7 @@ def main():
     user = str([args.username if args.username else "admin"][0])
     password = args.password
     controller = args.controller
-    api_version = str([args.api_version if args.api_version else "17.2.10"][0])
+    api_version = str([args.api_version if args.api_version else "17.2.1"][0])
     tenant = str([args.tenant if args.tenant else "admin"][0])
     enableonly = args.enable
 
@@ -42,19 +42,6 @@ def main():
     api = ApiSession.get_session(controller, user, password, tenant=tenant, api_version=api_version)
 
     print "Avi Networks Authentication Successful"
-
-    resp = api.get("virtualservice", params={'page_size': 1000})
-
-    vs_list = list()
-    if resp.status_code in range(200, 299):
-        json_data = json.loads(resp.text)
-        for row in json_data['results']:
-            if 'analytics_policy' in row:
-                if row['analytics_policy']['client_insights'] != 'NO_INSIGHTS':
-                    vs_list.append(row["uuid"])
-    else:
-        print('Error Occurred with GET VirtualService :%s' % resp.text)
-        exit(0)
 
     print "Gathering Virtual Service Information"
     page = 1
