@@ -24,15 +24,10 @@ def crawl_update(q, result, api, tenant, enableonly):
     while not q.empty():
         work = q.get()
         try:
-
-            resp = api.get('virtualservice/' + work[1])
-            if resp.status_code in range(200, 299):
-
                 status = True if enableonly else False
-                vs_data = json.loads(resp.text)
-                vs_data['enabled'] = status
+                data = {'enabled': status}
 
-                resp = api.patch('virtualservice/' + work[1], tenant=tenant, data={'replace': vs_data})
+                resp = api.patch('virtualservice/' + work[1], tenant=tenant, data={'replace': data})
 
                 if resp.status_code in range(200, 299):
                     print '- VS[%s]: Status Changed' % work[1]
@@ -40,10 +35,6 @@ def crawl_update(q, result, api, tenant, enableonly):
                 else:
                     print 'Error: %s' % resp.text
                     result[work[0]] = {'Error: %s' % resp.text}
-
-            else:
-                print 'Error: %s' % resp.text
-                result[work[0]] = {'Error: %s' % resp.text}
 
         except:
             result[work[0]] = {'Exception Error'}
