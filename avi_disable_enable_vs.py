@@ -14,7 +14,43 @@
 import urllib3
 import json
 import argparse
+import threading
+from Queue import Queue
 from avi.sdk.avi_api import ApiSession
+
+
+def crawl_update(q, result, api, tenant, enableonly):
+
+    while not q.empty():
+        work = q.get()
+        try:
+
+            resp = api.get('virtualservice/' + work[1])
+            if resp.status_code in range(200, 299):
+
+                status = True if enableonly else False
+                vs_data = json.loads(resp.text)
+                vs_data['enabled'] = status
+
+                resp = api.patch('virtualservice/' + work[1], tenant=tenant, data={'replace': vs_data})
+
+                if resp.status_code in range(200, 299):
+                    print '- VS[%s]: Status Changed' % work[1]
+                    result[work[0]] = {'- VS[%s]: Status Changed' % work[1]}
+                else:
+                    print 'Error: %s' % resp.text
+                    result[work[0]] = {'Error: %s' % resp.text}
+
+            else:
+                print 'Error: %s' % resp.text
+                result[work[0]] = {'Error: %s' % resp.text}
+
+        except:
+            result[work[0]] = {'Exception Error'}
+
+        q.task_done()
+
+    return True
 
 
 def main():
@@ -46,10 +82,9 @@ def main():
     print "Gathering Virtual Service Information"
     page = 1
     vs_list = list()
-
     while True:
 
-        resp = api.get("virtualservice", params={'page_size': 999, 'page': str(page)})
+        resp = api.get("virtualservice", params={'page_size': 100, 'page': str(page)})
 
         if resp.status_code in range(200, 299):
 
@@ -72,30 +107,27 @@ def main():
         print 'No Virtual Services Found!'
         exit(0)
 
-    output = raw_input("Type 'y' to continue and disable/enable listed virtual services or any other key to cancel.")
+    output = raw_input("Type 'y' to continue and disable/enable listed virtual services or any other key to cancel.: ")
     if output != 'y':
         print 'Request Cancelled!'
         exit(0)
     else:
-        print "Changing Virtual Service Statuses"
-        for vs in vs_list:
 
-            resp = api.get('virtualservice/' + str(vs))
-            if resp.status_code in range(200, 299):
+        q = Queue(maxsize=0)
+        num_theads = min(100, len(vs_list))
+        results = [{} for x in vs_list]
+        for i in range(len(vs_list)):
+            q.put((i, vs_list[i]))
 
-                status = 'true' if enableonly else 'false'
-                vs_data = json.loads(resp.text)
-                vs_data['enabled'] = status
+        for i in range(num_theads):
 
-                resp = api.put('virtualservice/' + str(vs), tenant=tenant, data=vs_data)
-                if resp.status_code in range(200, 299):
-                    print '- VS[%s]: Status Changed' % str(vs)
-                else:
-                    print 'Error: %s' % resp.text
+            # print 'Starting Thread: %s' % i
+            worker = threading.Thread(target=crawl_update, args=(q, results, api, tenant, enableonly))
+            worker.setDaemon(True)
+            worker.start()
 
-            else:
-                print 'Error: %s' % resp.text
-                exit(0)
+        q.join()
+        print 'All Tasks Done!'
 
 
 if __name__ == "__main__":
