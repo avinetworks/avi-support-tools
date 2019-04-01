@@ -20,9 +20,9 @@ from avi.sdk.avi_api import ApiSession
 def main():
 
     parser = argparse.ArgumentParser(description="AVISDK based Script to export list of virtual services ")
-    parser.add_argument("-u", "--username", required=False, help="Login username")
-    parser.add_argument("-p", "--password", required=False, help="Login password")
-    parser.add_argument("-c", "--controller", required=False, help="Controller IP address")
+    parser.add_argument("-u", "--username", required=True, help="Login username")
+    parser.add_argument("-p", "--password", required=True, help="Login password")
+    parser.add_argument("-c", "--controller", required=True, help="Controller IP address")
     parser.add_argument("-a", "--api_version", required=False, help="Api Version Name")
     parser.add_argument("-t", "--tenant", required=False, help="The tenant which get list from.")
     args = parser.parse_args()
