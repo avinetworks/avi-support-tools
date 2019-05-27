@@ -46,6 +46,15 @@ def main():
         controller, user, password, tenant=tenant, api_version=api_version)
 
     print "Avi Networks Authentication Successful"
+    
+    print "Validating SE Group UUID"
+    resp = api.get("serviceenginegroup/" + seg)
+    if resp.status_code in range(200, 299):
+        print 'Service Engine Group: Is Valid!'
+    else:
+        print 'Service Engine Group: Does Not Exist / Not Valid'
+        exit(0)
+        
     print "Starting VS Check"
 
     page = 1
@@ -58,7 +67,7 @@ def main():
             json_data = json.loads(resp.text)
 
             for row in json_data['results']:
-                if seg in row['se_group_ref'] and 'serviceenginegroup-' in seg:
+                if seg in row['se_group_ref']:
                     if 'analytics_policy' in row:
                         if row['analytics_policy']['client_insights'] != 'NO_INSIGHTS':
                             vs_list.append(row["uuid"])
