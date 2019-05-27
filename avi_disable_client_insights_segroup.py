@@ -5,7 +5,7 @@
 #
 # AVISDK based script to disable client insights feature from all virtual service that belong to specific tenant and seg.
 # Requirement ("pip install avisdk,argparse,requests,csv,json")
-# Usage:- python avi_export_events.py -c <Controller-IP> -u <user-name> -p <password> -a <api_version> -t <tenant> -seg <seg uuid>"
+# Usage:- python avi_disable_client_insights_segroup.py -c <Controller-IP> -u <user-name> -p <password> -a <api_version> -t <tenant> -seg <seg uuid>"
 # Note:- This script works for Avi Controller version 17.2.10 onwards
 
 # Imports...
