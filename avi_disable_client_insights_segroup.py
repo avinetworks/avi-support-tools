@@ -15,16 +15,6 @@ import json
 import argparse
 from avi.sdk.avi_api import ApiSession
 
-def get_ref(obj, ref):
-    if ref in obj and obj[ref]:
-        x = obj[ref].split('name=')[1]
-        if '&' in x:
-            x = x.split('&')[0]
-        return x
-    else:
-        return 'None'
-
-
 def main():
 
     parser = argparse.ArgumentParser(
