@@ -58,7 +58,7 @@ def main():
             json_data = json.loads(resp.text)
 
             for row in json_data['results']:
-                if seg in row['se_group_ref']:
+                if seg in row['se_group_ref'] and 'serviceenginegroup-' in seg:
                     if 'analytics_policy' in row:
                         if row['analytics_policy']['client_insights'] != 'NO_INSIGHTS':
                             vs_list.append(row["uuid"])
