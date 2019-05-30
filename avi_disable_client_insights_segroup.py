@@ -80,11 +80,11 @@ def main():
             print('Error Occurred with GET VirtualService: %s' % resp.text)
             exit(0)
 
-    print 'Total VS /w Client Insights: %s' % len(vs_list)
-
     if len(vs_list) < 1:
         print 'No Virtual Services /w Client Insights'
         exit(0)
+
+    print 'Total VS /w Client Insights: %s' % len(vs_list)
 
     output = raw_input(
         "Type 'y' to continue and disable client insights from the identified VS or any other key to cancel. ")
@@ -101,8 +101,9 @@ def main():
                 vs_data = json.loads(resp.text)
                 vs_data['analytics_policy']['client_insights'] = 'NO_INSIGHTS'
 
-                resp = api.put('virtualservice/' + str(vs),
-                               tenant=tenant, data=vs_data)
+                resp = api.patch('virtualservice/' + str(vs), tenant=tenant, data={'replace': vs_data})
+                #resp = api.put('virtualservice/' + str(vs),tenant=tenant, data=vs_data)
+                
                 if resp.status_code in range(200, 299):
                     print '- VS[%s]: Client Insights Disabled' % str(vs)
                 else:
