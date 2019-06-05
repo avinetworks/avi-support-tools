@@ -5,7 +5,7 @@
 # AVI CONFIDENTIAL
 # __________________
 #
-# [2013] - [2018] Avi Networks Incorporated
+# [2013] - [2019] Avi Networks Incorporated
 # All Rights Reserved.
 #
 # NOTICE: All information contained herein is, and remains the property
@@ -109,7 +109,7 @@ import logging
 from time import sleep
 from logging.config import dictConfig
 
-VERSION = '2.0.0'
+VERSION = '2.0.5'
 
 CHUNK_SIZE = 50 * 1024 * 1024
 
@@ -138,7 +138,7 @@ STATE_FILE = os.path.expanduser(
 
 OAUTH_CLIENT_ID = '3MVG9JZ_r.QzrS7hMLCl6ttT5SrxFJSQe5lACnE69kKOENic9.dLtS7.QDapmZT5p79wiEYDQ.8oAWSb.Ni97'
 OAUTH_URL = 'https://cslogin.avinetworks.com/services/oauth2/token'
-HOSTNAME = 'https://avi-api.restiolabs.com'
+HOSTNAME = 'https://avi-api.avinetworks.com'
 BUCKET = 'avidownloads'
 REGION = 'us-west-2'
 
@@ -159,6 +159,15 @@ class Attach2Case(object):
         self.filenames = self.settings['files']
         self._refresh_token = None
         self._access_token = None
+
+        # try to read the refresh token from the state file
+        if os.path.exists(STATE_FILE):
+            try:
+                with open(STATE_FILE, 'rb') as fh:
+                    self._refresh_token = fh.read()
+                return
+            except ValueError:
+                pass
 
     def get_settings(self):
         """
@@ -213,18 +222,9 @@ class Attach2Case(object):
 
     def get_oauth_tokens(self):
         """
-        Retrieves the refresh token and conditionally the access token -
-        either from state file, or from the IdP (on the first run)
+        Retrieves the refresh and access tokens from the IdP by means of
+        remote authorisation
         """
-        # try to read the refresh token from the state file
-        if os.path.exists(STATE_FILE):
-            try:
-                with open(STATE_FILE) as fh:
-                    self._refresh_token = fh.read()
-                return
-            except ValueError:
-                pass
-
         headers = {'Content-Type': 'application/x-www-form-urlencoded'}
         payload = {
             'response_type': 'device_code',
@@ -233,7 +233,7 @@ class Attach2Case(object):
         method = 'post'
 
         request = urllib2.Request(
-            x, headers=headers, data=urllib.urlencode(payload))
+            OAUTH_URL, headers=headers, data=urllib.urlencode(payload))
         request.get_method = lambda: method.upper()
         response = urllib2.urlopen(request)
         data = json.load(response)
@@ -278,9 +278,24 @@ class Attach2Case(object):
                 self._refresh_token = data['refresh_token']
                 self._access_token = data['access_token']
 
+                print '...done\n'
+
                 return
             except urllib2.HTTPError:
+                # keep polling
                 pass
+
+    @property
+    def refresh_token(self):
+        """
+        Returns the cached refresh token, or requests the user to
+        remotely authorize the script to obtain a new refresh token from
+        the IdP
+        """
+        if not self._refresh_token:
+            self.get_oauth_tokens()
+
+        return self._refresh_token
 
     @property
     def access_token(self):
@@ -288,9 +303,6 @@ class Attach2Case(object):
         Returns the cached access token, or retrieves a new one from the
         IdP by means of the refresh token
         """
-        if not self._access_token:
-            self.get_oauth_tokens()
-
         if not self._access_token:
             headers = {
                 'Accept': 'application/json',
@@ -300,14 +312,20 @@ class Attach2Case(object):
             payload = urllib.urlencode({
                 'grant_type': 'refresh_token',
                 'client_id': OAUTH_CLIENT_ID,
-                'refresh_token': self._refresh_token
+                'refresh_token': self.refresh_token
             })
 
             request = urllib2.Request(OAUTH_URL, headers=headers, data=payload)
             request.get_method = lambda: 'POST'
-            response = urllib2.urlopen(request)
-            data = json.load(response)
-            self._access_token = data['access_token']
+
+            try:
+                response = urllib2.urlopen(request)
+                data = json.load(response)
+                self._access_token = data['access_token']
+            except urllib2.HTTPError:
+                # the refresh token has expired or become invalid
+                self._refresh_token = None
+                self.get_oauth_tokens()
 
         return self._access_token
 
@@ -346,29 +364,20 @@ class Attach2Case(object):
 
         Raises exception for any HTTP status code >= 400.
         """
-        retry = True
-        while 1:
-            try:
-                return urllib2.urlopen(request)
-            except urllib2.HTTPError as e:
-                error_code = SERVER_ERROR
-                if e.code in (401, 403):
-                    if retry:
-                        retry = False
-                        self._access_token = None
-                        continue
-                    error_code = AUTHENTICATION_ERROR
-                if e.code in (400, 404):
-                    error_code = VALIDATION_ERROR
-                raise Attach2CaseError(
-                    u'%s %s\n%s' % (e.code, e.reason, e.read()), error_code)
-            except urllib2.URLError as e:
-                raise
-                raise Attach2CaseError(
-                    e.reason, CONNECTION_ERROR)
-            except Exception as e:
-                raise
-                raise Attach2CaseError(e, CONNECTION_ERROR)
+        try:
+            return urllib2.urlopen(request)
+        except urllib2.HTTPError as e:
+            error_code = SERVER_ERROR
+            if e.code in (401, 403):
+                error_code = AUTHENTICATION_ERROR
+            if e.code in (400, 404):
+                error_code = VALIDATION_ERROR
+            raise Attach2CaseError(
+                u'%s %s\n%s' % (e.code, e.reason, e.read()), error_code)
+        except urllib2.URLError as e:
+            raise Attach2CaseError(e.reason, CONNECTION_ERROR)
+        except Exception as e:
+            raise Attach2CaseError(e, CONNECTION_ERROR)
 
     def initialise_attachment(self, filename):
         """
@@ -396,10 +405,21 @@ class Attach2Case(object):
 
         headers['Content-Length'] = len(payload)
 
-        request = self.get_request(url, 'post', headers, payload)
-        response = self.get_response(request)
-        data = json.load(response)
-        return data
+        retry = True
+        while 1:
+            request = self.get_request(url, 'post', headers, payload)
+            try:
+                response = self.get_response(request)
+                return json.load(response)
+            except Attach2CaseError as e:
+                if retry and e.error_code == AUTHENTICATION_ERROR:
+                    retry = False
+                    # setting access_token to None forces token refresh
+                    self._access_token = None
+                    headers['Authorization'] = 'Bearer {}'.format(
+                        self.access_token)
+                    continue
+                raise
 
     def complete_attachment(self, filename, upload_id, e_tags):
         """
@@ -427,10 +447,21 @@ class Attach2Case(object):
 
         headers['Content-Length'] = len(payload)
 
-        request = self.get_request(url, 'post', headers, payload)
-        response = self.get_response(request)
-        data = json.load(response)
-        return data
+        retry = True
+        while 1:
+            request = self.get_request(url, 'post', headers, payload)
+            try:
+                response = self.get_response(request)
+                return json.load(response)
+            except Attach2CaseError as e:
+                if retry and e.error_code == AUTHENTICATION_ERROR:
+                    retry = False
+                    # setting access_token to None forces token refresh
+                    self._access_token = None
+                    headers['Authorization'] = 'Bearer {}'.format(
+                        self.access_token)
+                    continue
+                raise
 
     def upload_chunk(self, url, offset, chunk):
         """
