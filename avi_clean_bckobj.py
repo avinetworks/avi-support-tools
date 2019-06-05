@@ -53,22 +53,16 @@ def main():
 
     print 'Total Found: %s' % len(bck_list)
 
-    output = raw_input(
-        "Type 'y' to continue and remove all backup object from database or any other key to cancel. ")
-    if output != 'y':
-        print 'Request Cancelled!'
-        exit(0)
-    else:
 
-        print "Removing 'Backup Objects' !"
+    print "Removing 'Backup Objects' !"
 
-        for bk in bck_list:
-            resp = api.delete('backup/' + str(bk))
-            if resp.status_code in range(200, 299):
-                print "Backup Object Delete: %s" % bk
-            else:
-                print 'Error: %s' % resp.text
-                exit(0)
+    for bk in bck_list:
+        resp = api.delete('backup/' + str(bk))
+        if resp.status_code in range(200, 299):
+            print "Backup Object Delete: %s" % bk
+        else:
+            print 'Error: %s' % resp.text
+            exit(0)
 
 
 if __name__ == "__main__":
