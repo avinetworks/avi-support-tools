@@ -44,6 +44,10 @@ Optional arguments
   -P, --progress
                         Display progress indicator (default: False)
 
+How to use behind proxy.
+---------------------------
+$ export HTTPS_PROXY="http://<user>:<pass>@<proxy>:<port>"
+$ ./attach2case.py 9098 /path/to/file
 
 Configuration file details
 --------------------------
