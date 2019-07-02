@@ -44,10 +44,6 @@ Optional arguments
   -P, --progress
                         Display progress indicator (default: False)
 
-How to use behind proxy.
----------------------------
-$ export HTTPS_PROXY="http://<user>:<pass>@<proxy>:<port>"
-$ ./attach2case.py 9098 /path/to/file
 
 Configuration file details
 --------------------------
@@ -113,7 +109,7 @@ import logging
 from time import sleep
 from logging.config import dictConfig
 
-VERSION = '2.0.5'
+VERSION = '2.0.6'
 
 CHUNK_SIZE = 50 * 1024 * 1024
 
@@ -416,7 +412,7 @@ class Attach2Case(object):
                 response = self.get_response(request)
                 return json.load(response)
             except Attach2CaseError as e:
-                if retry and e.error_code == AUTHENTICATION_ERROR:
+                if retry and e.code == AUTHENTICATION_ERROR:
                     retry = False
                     # setting access_token to None forces token refresh
                     self._access_token = None
@@ -458,7 +454,7 @@ class Attach2Case(object):
                 response = self.get_response(request)
                 return json.load(response)
             except Attach2CaseError as e:
-                if retry and e.error_code == AUTHENTICATION_ERROR:
+                if retry and e.code == AUTHENTICATION_ERROR:
                     retry = False
                     # setting access_token to None forces token refresh
                     self._access_token = None
@@ -471,7 +467,7 @@ class Attach2Case(object):
         """
         Uploads a chunk.
 
-        Returns the offset.
+        Returns the ETag (MD5 Hash) header from the server.
         """
         headers = {
             'Content-Type': 'application/offset+octet-stream',
@@ -506,7 +502,7 @@ class Attach2Case(object):
 
     def upload_attachment(self, filename, urls):
         """
-        Chunks and uploads filename to URL.
+        Chunks and uploads a file to a list of pre-signed URLs.
         """
         i = 0
         offset = 0
