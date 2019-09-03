@@ -73,8 +73,9 @@ def get_vs_stats(cdict):
         if 'full_client_logs' in v.get('analytics_policy', {}):
             root_obj[v['uuid']]['full_logs'] = v['analytics_policy']['full_client_logs']['enabled']
 
-        if v['analytics_policy']['client_insights'] != 'NO_INSIGHTS':
-            root_obj[v['uuid']]['client_insights'] = True
+        if 'client_insights' in v.get('analytics_policy', {}):
+            if v['analytics_policy']['client_insights'] != 'NO_INSIGHTS':
+                root_obj[v['uuid']]['client_insights'] = True
 
         if 'vsvip_ref' in v:
             obj = str(get_ref(v, 'vsvip_ref'))
