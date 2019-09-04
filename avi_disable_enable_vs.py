@@ -7,7 +7,6 @@
 
 # Requirement ("pip install avisdk,argparse,requests,csv,json")
 # Usage:- python avi_export_events.py -c <Controller-IP> -u <user-name> -p <password> -a <api_version> -t <tenant>" -e (option to enable vs instead of disable)
-# Note:- This script works for Avi Controller version 17.2.4 onwards
 
 # Imports...
 
