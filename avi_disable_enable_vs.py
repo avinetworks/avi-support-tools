@@ -7,7 +7,7 @@
 
 # Requirement ("pip install avisdk,argparse,requests,csv,json")
 # Usage:- python avi_export_events.py -c <Controller-IP> -u <user-name> -p <password> -a <api_version> -t <tenant>" -e (option to enable vs instead of disable)
-# Note:- This script works for Avi Controller version 17.2.10 onwards
+# Note:- This script works for Avi Controller version 17.2.4 onwards
 
 # Imports...
 
@@ -47,10 +47,10 @@ def crawl_update(q, result, api, tenant, enableonly):
 def main():
 
     parser = argparse.ArgumentParser(description="AVISDK based Script to export list of virtual services ")
-    parser.add_argument("-u", "--username", required=False, help="Login username")
-    parser.add_argument("-p", "--password", required=False, help="Login password")
-    parser.add_argument("-c", "--controller", required=False, help="Controller IP address")
-    parser.add_argument("-a", "--api_version", required=False, help="Api Version Name")
+    parser.add_argument("-u", "--username", required=True, help="Login username")
+    parser.add_argument("-p", "--password", required=True, help="Login password")
+    parser.add_argument("-c", "--controller", required=True, help="Controller IP address")
+    parser.add_argument("-a", "--api_version", required=True, help="Api Version Name")
     parser.add_argument("-t", "--tenant", required=False, help="The tenant which get list from.")
     parser.add_argument("-e", "--enable", action='store_true', required=False, help="Flag if you want to enable virtual services instead.")
     args = parser.parse_args()
@@ -58,7 +58,7 @@ def main():
     user = str([args.username if args.username else "admin"][0])
     password = args.password
     controller = args.controller
-    api_version = str([args.api_version if args.api_version else "17.2.1"][0])
+    api_version = str(args.api_version)
     tenant = str([args.tenant if args.tenant else "admin"][0])
     enableonly = args.enable
 
