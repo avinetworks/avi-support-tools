@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Created on Jan 14, 2019
+#
 # AVISDK based script to disable virtual services that belong to specific tenant.
 
 # Requirement ("pip install avisdk,argparse,requests,csv,json")
@@ -13,6 +13,8 @@ import json
 import argparse
 import threading
 from Queue import Queue
+import syslog
+import sys
 from avi.sdk.avi_api import ApiSession
 
 
@@ -59,6 +61,28 @@ def main():
     tenant = str([args.tenant if args.tenant else "admin"][0])
     enableonly = args.enable
 
+    print "CHECKING API VERSION SELECTED!!"
+    print "API Version Selected: %s" % api_version
+
+    try:
+        version = api_version.split(".")
+        if int(version[0]) >= 17:
+            if int(version[0]) == 17 and int(version[1]) < 2:
+                print "The selected API version is not compatible with this script."
+                exit(1)
+            else:
+                if int(version[0]) == 17 and int(version[1]) == 2 and int(version[2]) < 4:
+                    print "The selected API version is not compatible with this script."
+                    exit(1)
+        else:
+            print "The selected API version is not compatible with this script."
+            exit(1)
+
+    except Exception as e:
+        exc_type, exc_obj, exc_tb = sys.exc_info()
+        print "Unexpected Error: %s, %s" % (exc_type, exc_tb.tb_lineno)
+        exit(1)
+
     print "Starting Virtual Service Check"
 
     # Get API Session Details
@@ -101,6 +125,8 @@ def main():
         exit(0)
     else:
 
+        syslog.syslog(syslog.LOG_WARNING, ("Avi Script Executed (PARAMS: %s,%s,%s,%s)" % (user,api_version,controller,tenant)))
+
         q = Queue(maxsize=0)
         num_theads = min(100, len(vs_list))
         results = [{} for x in vs_list]
@@ -116,6 +142,8 @@ def main():
 
         q.join()
         print 'All Tasks Done!'
+
+        syslog.syslog(syslog.LOG_WARNING, ("Avi Script Completed (PARAMS: %s,%s,%s,%s)" % (user,api_version,controller,tenant)))
 
 
 if __name__ == "__main__":
