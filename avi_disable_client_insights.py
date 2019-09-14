@@ -6,7 +6,6 @@
 # AVISDK based script to disable client insights feature from all virtual service that belong to specific tenant.
 # Requirement ("pip install avisdk,argparse,requests,csv,json")
 # Usage:- python avi_disable_client_insights.py -c <Controller-IP> -u <user-name> -p <password> -a <api_version> -t <tenant>"
-# Note:- This script works for Avi Controller version 17.2.10 onwards
 
 # Imports...
 
@@ -29,7 +28,7 @@ def main():
     user = str([args.username if args.username else "admin"][0])
     password = args.password
     controller = args.controller
-    api_version = str(args.api_version)
+    api_version = str([args.api_version if args.api_version else "17.2.4"][0])
     tenant = str([args.tenant if args.tenant else "*"][0])
 
     print "Starting Application Profile Check"
@@ -82,12 +81,10 @@ def main():
 
             resp = api.get('virtualservice/' + str(vs))
             if resp.status_code in range(200, 299):
-                vs_data = json.loads(resp.text)
+                vs_data = {'analytics_policy': {'client_insights': 'NO_INSIGHTS'}}
 
                 try:
-                    vs_data['analytics_policy']['client_insights'] = 'NO_INSIGHTS'
                     resp = api.patch('virtualservice/' + str(vs), tenant=tenant, data={'replace': vs_data})
-                    
 
                     if resp.status_code in range(200, 299):
                         print '- VS[%s]: Client Insights Disabled' % str(vs)
