@@ -29,7 +29,7 @@ def main():
     user = str([args.username if args.username else "admin"][0])
     password = args.password
     controller = args.controller
-    api_version = str([args.api_version if args.api_version else "17.2.4"][0])
+    api_version = str(args.api_version)
     tenant = str([args.tenant if args.tenant else "*"][0])
 
     print "Starting Application Profile Check"
