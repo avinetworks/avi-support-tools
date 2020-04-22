@@ -139,7 +139,7 @@ STATE_FILE = os.path.expanduser(
 OAUTH_CLIENT_ID = '3MVG9JZ_r.QzrS7hMLCl6ttT5SrxFJSQe5lACnE69kKOENic9.dLtS7.QDapmZT5p79wiEYDQ.8oAWSb.Ni97'
 OAUTH_URL = 'https://cslogin.avinetworks.com/services/oauth2/token'
 HOSTNAME = 'https://avi-api.avinetworks.com'
-BUCKET = 'avidownloads'
+BUCKET = 'prod-avidownloads-us'
 REGION = 'us-west-2'
 
 
